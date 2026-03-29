@@ -1,0 +1,8 @@
+[project]
+name = "clips-watcher"
+version = "0.1.0"
+description = "Clippings directory watcher — auto obs-note via claude -p"
+requires-python = ">=3.10"
+dependencies = [
+    "watchdog>=4.0.0",
+]
