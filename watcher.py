@@ -13,6 +13,7 @@ PM2:
 import os
 import sys
 import time
+import signal
 import logging
 import queue
 import subprocess
@@ -21,6 +22,25 @@ import re
 from pathlib import Path
 from threading import Timer
 from datetime import datetime
+
+
+# ---------------------------------------------------------------------------
+# Parent-death detection: exit when Molly (parent) dies
+# ---------------------------------------------------------------------------
+
+def _watch_parent():
+    """Background thread: exit when parent process dies (PPID becomes 1/launchd)."""
+    parent_pid = os.getppid()
+    while True:
+        time.sleep(2)
+        if os.getppid() != parent_pid:
+            logging.getLogger('clips-watcher').info(
+                f"Parent process {parent_pid} died (ppid now {os.getppid()}), exiting."
+            )
+            os.kill(os.getpid(), signal.SIGTERM)
+            break
+
+threading.Thread(target=_watch_parent, daemon=True).start()
 
 # --- 路径配置 ---
 CLIPS_DIR  = Path(__file__).parent.resolve()
@@ -224,7 +244,7 @@ class ClippingsHandler:
             return
         if p.parent != WATCH_PATH:
             return
-        log.info(f"[detected] {p.name}")
+        log.debug(f"[detected] {p.name}")
         self._debounce(path)
 
     def _debounce(self, path: str):
@@ -237,6 +257,7 @@ class ClippingsHandler:
 
     def _run(self, path: str):
         self._timers.pop(path, None)
+        log.info(f"[detected] {Path(path).name}")
         self.pipeline.process_file(Path(path))
 
 
