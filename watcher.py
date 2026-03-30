@@ -48,7 +48,7 @@ CLIPS_DIR  = Path(__file__).parent.resolve()
 _vault = os.environ.get('MOLLY_VAULT_PATH')
 if not _vault:
     sys.exit("Error: MOLLY_VAULT_PATH environment variable is not set.")
-VAULT_PATH = Path(_vault)
+VAULT_PATH = Path(_vault).resolve()
 WATCH_PATH = VAULT_PATH / 'Clippings'
 LOG_PATH   = CLIPS_DIR / 'logs' / 'watcher.log'
 
@@ -127,7 +127,7 @@ def run_obs_note(file_path: Path) -> bool:
     返回 True 表示成功（退出码 0）。
     """
     content = file_path.read_text(encoding='utf-8')
-    prompt = f"/obs-note 请整理以下内容：\n\n{content}"
+    prompt = f"/obs-note vault={VAULT_PATH} 请整理以下内容：\n\n{content}"
 
     cmd = [
         CLAUDE_BIN,
@@ -239,7 +239,7 @@ class ClippingsHandler:
         self._timers: dict[str, Timer] = {}
 
     def on_change(self, path: str):
-        p = Path(path)
+        p = Path(path).resolve()
         if p.suffix != '.md':
             return
         if p.parent != WATCH_PATH:
